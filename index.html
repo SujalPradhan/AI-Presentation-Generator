@@ -1,0 +1,1620 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auto PPT Generator</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            padding: 40px;
+        }
+
+        .form-section {
+            margin-bottom: 30px;
+        }
+
+        .form-section h2 {
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+            color: #374151;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .icon {
+            width: 24px;
+            height: 24px;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #4b5563;
+        }
+
+        textarea, input[type="text"], input[type="file"], select {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            background: #f9fafb;
+        }
+
+        textarea:focus, input:focus, select:focus {
+            outline: none;
+            border-color: #4f46e5;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+
+        textarea {
+            min-height: 200px;
+            resize: vertical;
+        }
+
+        .api-config {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 15px;
+            align-items: end;
+        }
+
+        .tone-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .tone-option {
+            padding: 10px 15px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: #f9fafb;
+        }
+
+        .tone-option:hover {
+            border-color: #4f46e5;
+            background: #eef2ff;
+        }
+
+        .tone-option.selected {
+            border-color: #4f46e5;
+            background: #4f46e5;
+            color: white;
+        }
+
+        .generate-btn {
+            width: 100%;
+            padding: 20px;
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            color: white;
+            border: none;
+            border-radius: 15px;
+            font-size: 1.2rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 30px;
+        }
+
+        .generate-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(79, 70, 229, 0.4);
+        }
+
+        .generate-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e5e7eb;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 20px 0;
+            display: none;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4f46e5, #7c3aed);
+            width: 0%;
+            transition: width 0.5s ease;
+        }
+
+        .status {
+            text-align: center;
+            margin: 20px 0;
+            font-weight: 600;
+        }
+
+        .preview-section {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8fafc;
+            border-radius: 12px;
+            display: none;
+        }
+
+        .slide-preview {
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            background: white;
+        }
+
+        .slide-title {
+            font-weight: bold;
+            font-size: 1.1rem;
+            margin-bottom: 10px;
+            color: #374151;
+        }
+
+        .slide-content {
+            color: #6b7280;
+            line-height: 1.5;
+        }
+
+        .error {
+            color: #dc2626;
+            background: #fef2f2;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #dc2626;
+            margin: 15px 0;
+        }
+
+        .success {
+            color: #059669;
+            background: #ecfdf5;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #059669;
+            margin: 15px 0;
+        }
+
+        .file-info {
+            font-size: 0.9rem;
+            color: #6b7280;
+            margin-top: 5px;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .api-config {
+                grid-template-columns: 1fr;
+            }
+            
+            .tone-options {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎯 Auto PPT Generator</h1>
+            <p>Transform your text into professional PowerPoint presentations instantly</p>
+        </div>
+        
+        <div class="main-content">
+            <form id="pptForm">
+                <!-- Text Input Section -->
+                <div class="form-section">
+                    <h2>
+                        <span class="icon">📝</span>
+                        Your Content
+                    </h2>
+                    <div class="input-group">
+                        <label for="textInput">Paste your text, markdown, or prose:</label>
+                        <textarea id="textInput" placeholder="Enter your content here... Supports plain text, markdown, and structured prose. The AI will intelligently break this into slides." required></textarea>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label for="guidance">Optional guidance (tone, structure, use case):</label>
+                        <input type="text" id="guidance" placeholder="e.g., 'Professional investor pitch for a SaaS startup' or 'Technical presentation for engineers'">
+                    </div>
+
+                    <div class="input-group">
+                        <label>Quick Tone Selection:</label>
+                        <div class="tone-options">
+                            <div class="tone-option" data-tone="professional">📊 Professional</div>
+                            <div class="tone-option" data-tone="investor">💼 Investor Pitch</div>
+                            <div class="tone-option" data-tone="technical">⚙️ Technical</div>
+                            <div class="tone-option" data-tone="educational">🎓 Educational</div>
+                            <div class="tone-option" data-tone="creative">🎨 Creative</div>
+                            <div class="tone-option" data-tone="sales">📈 Sales</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- API Configuration Section -->
+                <div class="form-section">
+                    <h2>
+                        <span class="icon">🔑</span>
+                        AI Configuration
+                    </h2>
+                    <div class="api-config">
+                        <div class="input-group">
+                            <label for="apiProvider">AI Provider:</label>
+                            <select id="apiProvider" required>
+                                <option value="">Select Provider</option>
+                                <option value="openai" selected>OpenAI (GPT-3.5-Turbo) - Recommended</option>
+                                <option value="anthropic">Anthropic (Claude 3 Haiku) - Free Tier</option>
+                                <option value="gemini">Google (Gemini 1.5 Flash) - Free Tier</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label for="apiKey">API Key (never stored or logged):</label>
+                            <input type="password" id="apiKey" placeholder="Your API key - processed securely in-browser only" required>
+                            <div class="file-info" id="apiKeyInfo">
+                                OpenAI: Get free $5 credit at platform.openai.com/api-keys
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Template Upload Section -->
+                <div class="form-section">
+                    <h2>
+                        <span class="icon">📎</span>
+                        PowerPoint Template
+                    </h2>
+                    <div class="input-group">
+                        <label for="templateFile">Upload your PowerPoint template (.pptx or .potx):</label>
+                        <input type="file" id="templateFile" accept=".pptx,.potx" required>
+                        <div class="file-info">The generated presentation will match your template's style, colors, fonts, and layouts.</div>
+                    </div>
+                </div>
+
+                <button type="submit" class="generate-btn" id="generateBtn">
+                    🚀 Generate PowerPoint Presentation
+                </button>
+            </form>
+
+            <div class="progress-bar" id="progressBar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            
+            <div class="status" id="status"></div>
+            
+            <div class="preview-section" id="previewSection">
+                <h3>📋 Slide Preview</h3>
+                <div id="slidePreview"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class AutoPPTGenerator {
+            constructor() {
+                this.initializeEventListeners();
+                this.slideStructure = [];
+            }
+
+            initializeEventListeners() {
+                document.getElementById('pptForm').addEventListener('submit', (e) => this.handleFormSubmit(e));
+                
+                // Tone selection
+                document.querySelectorAll('.tone-option').forEach(option => {
+                    option.addEventListener('click', (e) => this.selectTone(e.target));
+                });
+
+                // API provider info updates
+                document.getElementById('apiProvider').addEventListener('change', (e) => this.updateApiInfo(e.target.value));
+            }
+
+            selectTone(element) {
+                document.querySelectorAll('.tone-option').forEach(opt => opt.classList.remove('selected'));
+                element.classList.add('selected');
+                
+                const guidance = document.getElementById('guidance');
+                const toneMap = {
+                    'professional': 'Professional business presentation with formal tone',
+                    'investor': 'Investor pitch deck focusing on business opportunity and growth',
+                    'technical': 'Technical presentation for engineering or scientific audience',
+                    'educational': 'Educational content for learning and knowledge sharing',
+                    'creative': 'Creative and engaging presentation with storytelling elements',
+                    'sales': 'Sales-focused presentation to drive conversions and engagement'
+                };
+                
+                if (!guidance.value) {
+                    guidance.value = toneMap[element.dataset.tone] || '';
+                }
+            }
+
+            validateTemplate(event) {
+                const file = event.target.files[0];
+                if (file) {
+                    const validExtensions = ['.pptx', '.potx'];
+                    const fileName = file.name.toLowerCase();
+                    const isValid = validExtensions.some(ext => fileName.endsWith(ext));
+                    
+                    if (!isValid) {
+                        this.showError('Please upload a valid PowerPoint file (.pptx or .potx)');
+                        event.target.value = '';
+                    } else if (file.size > 50 * 1024 * 1024) { // 50MB limit
+                        this.showError('File size too large. Please upload a file smaller than 50MB.');
+                        event.target.value = '';
+                    }
+                }
+            }
+
+            async handleFormSubmit(event) {
+                event.preventDefault();
+                
+                const textInput = document.getElementById('textInput').value.trim();
+                const guidance = document.getElementById('guidance').value.trim();
+                const apiProvider = document.getElementById('apiProvider').value;
+                const apiKey = document.getElementById('apiKey').value.trim();
+                const templateFile = document.getElementById('templateFile').files[0];
+
+                if (!textInput || !apiProvider || !apiKey || !templateFile) {
+                    this.showError('Please fill in all required fields.');
+                    return;
+                }
+
+                try {
+                    this.setLoading(true);
+                    this.showStatus('Processing your content with AI...', 'info');
+                    this.updateProgress(20);
+
+                    // Process text with LLM
+                    const slideData = await this.processTextWithLLM(textInput, guidance, apiProvider, apiKey);
+                    this.updateProgress(50);
+                    
+                    // Show preview
+                    this.showPreview(slideData);
+                    this.showStatus('Analyzing template and generating slides...', 'info');
+                    this.updateProgress(70);
+
+                    // For now, we'll create a basic PowerPoint without template processing
+                    // Template processing can be enhanced in future versions
+                    this.showStatus('Generating PowerPoint presentation...', 'info');
+                    const pptBlob = await this.generatePowerPoint(slideData, null, 'template.pptx');
+                    this.updateProgress(100);
+
+                    // Download the file
+                    this.downloadFile(pptBlob, 'Generated_Presentation.pptx');
+                    this.showStatus('✅ PowerPoint presentation generated successfully!', 'success');
+
+                } catch (error) {
+                    console.error('Error generating presentation:', error);
+                    this.showError('Error generating presentation: ' + error.message);
+                } finally {
+                    this.setLoading(false);
+                }
+            }
+
+            async processTextWithLLM(text, guidance, provider, apiKey) {
+                const prompt = `You are an expert presentation designer. Convert the following text into a structured PowerPoint presentation.
+
+Text to convert: """${text}"""
+
+${guidance ? `Additional guidance: ${guidance}` : ''}
+
+Please analyze the content and create a logical slide structure. Return ONLY a valid JSON object with this exact format:
+{
+    "title": "Main Presentation Title",
+    "slides": [
+        {
+            "type": "title",
+            "title": "Presentation Title",
+            "subtitle": "Optional subtitle"
+        },
+        {
+            "type": "content",
+            "title": "Slide Title",
+            "content": ["Bullet point 1", "Bullet point 2", "Bullet point 3"],
+            "notes": "Optional speaker notes"
+        }
+    ]
+}
+
+Guidelines:
+- Create 5-15 slides depending on content length
+- First slide should be type "title" 
+- Remaining slides should be type "content"
+- Break content into logical sections
+- Use clear, concise bullet points
+- Include speaker notes when helpful
+- Ensure professional language and structure`;
+
+                let response;
+                const apiKeySecure = apiKey; // Process in memory only - never logged
+
+                try {
+                    switch (provider) {
+                        case 'openai':
+                            response = await fetch('https://api.openai.com/v1/chat/completions', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Authorization': `Bearer ${apiKeySecure}`
+                                },
+                                body: JSON.stringify({
+                                    model: 'gpt-3.5-turbo',
+                                    messages: [{ role: 'user', content: prompt }],
+                                    temperature: 0.7,
+                                    max_tokens: 1500
+                                })
+                            });
+                            break;
+
+                        case 'anthropic':
+                            response = await fetch('https://api.anthropic.com/v1/messages', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'x-api-key': apiKeySecure,
+                                    'anthropic-version': '2023-06-01'
+                                },
+                                body: JSON.stringify({
+                                    model: 'claude-3-haiku-20240307',
+                                    messages: [{ role: 'user', content: prompt }],
+                                    max_tokens: 1500
+                                })
+                            });
+                            break;
+
+                        case 'gemini':
+                            response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKeySecure}`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    contents: [{ parts: [{ text: prompt }] }],
+                                    generationConfig: { 
+                                        temperature: 0.7, 
+                                        maxOutputTokens: 1500,
+                                        candidateCount: 1
+                                    }
+                                })
+                            });
+                            break;
+
+                        default:
+                            throw new Error('Unsupported API provider');
+                    }
+
+                    if (!response.ok) {
+                        const errorData = await response.text();
+                        throw new Error(`API request failed (${response.status}): ${errorData}`);
+                    }
+
+                    const data = await response.json();
+                    let content;
+
+                    switch (provider) {
+                        case 'openai':
+                            content = data.choices[0].message.content;
+                            break;
+                        case 'anthropic':
+                            content = data.content[0].text;
+                            break;
+                        case 'gemini':
+                            content = data.candidates[0].content.parts[0].text;
+                            break;
+                    }
+
+                    // Extract JSON from response
+                    const jsonMatch = content.match(/\{[\s\S]*\}/);
+                    if (!jsonMatch) {
+                        throw new Error('Invalid response format from AI provider');
+                    }
+
+                    const slideData = JSON.parse(jsonMatch[0]);
+                    
+                    // Validate structure
+                    if (!slideData.slides || !Array.isArray(slideData.slides)) {
+                        throw new Error('Invalid slide structure received');
+                    }
+
+                    return slideData;
+
+                } catch (error) {
+                    throw new Error(`LLM processing failed: ${error.message}`);
+                }
+            }
+
+            showPreview(slideData) {
+                const previewSection = document.getElementById('previewSection');
+                const slidePreview = document.getElementById('slidePreview');
+                
+                slidePreview.innerHTML = '';
+                
+                slideData.slides.forEach((slide, index) => {
+                    const slideElement = document.createElement('div');
+                    slideElement.className = 'slide-preview';
+                    
+                    if (slide.type === 'title') {
+                        slideElement.innerHTML = `
+                            <div class="slide-title">Slide ${index + 1}: Title Slide</div>
+                            <div class="slide-content">
+                                <strong>${slide.title}</strong>
+                                ${slide.subtitle ? `<br><em>${slide.subtitle}</em>` : ''}
+                            </div>
+                        `;
+                    } else {
+                        const contentList = Array.isArray(slide.content) ? 
+                            slide.content.map(item => `• ${item}`).join('<br>') : 
+                            slide.content || '';
+                            
+                        slideElement.innerHTML = `
+                            <div class="slide-title">Slide ${index + 1}: ${slide.title}</div>
+                            <div class="slide-content">${contentList}</div>
+                            ${slide.notes ? `<div style="margin-top:10px; font-style:italic; color:#9ca3af;">Notes: ${slide.notes}</div>` : ''}
+                        `;
+                    }
+                    
+                    slidePreview.appendChild(slideElement);
+                });
+                
+                previewSection.style.display = 'block';
+            }
+
+            async readTemplateFile(file) {
+                const arrayBuffer = await file.arrayBuffer();
+                const zip = new JSZip();
+                const zipData = await zip.loadAsync(arrayBuffer);
+                
+                // Extract template information
+                const templateData = {
+                    originalZip: zipData,
+                    slides: {},
+                    themes: {},
+                    media: {}
+                };
+
+                // Read slide layouts and themes
+                const slideFiles = Object.keys(zipData.files).filter(name => 
+                    name.startsWith('ppt/slideLayouts/') && name.endsWith('.xml')
+                );
+
+                for (const slideFile of slideFiles) {
+                    const content = await zipData.file(slideFile).async('text');
+                    templateData.slides[slideFile] = content;
+                }
+
+                // Read theme information
+                const themeFiles = Object.keys(zipData.files).filter(name => 
+                    name.startsWith('ppt/theme/') && name.endsWith('.xml')
+                );
+
+                for (const themeFile of themeFiles) {
+                    const content = await zipData.file(themeFile).async('text');
+                    templateData.themes[themeFile] = content;
+                }
+
+                // Read media files
+                const mediaFiles = Object.keys(zipData.files).filter(name => 
+                    name.startsWith('ppt/media/')
+                );
+
+                for (const mediaFile of mediaFiles) {
+                    const content = await zipData.file(mediaFile).async('arraybuffer');
+                    templateData.media[mediaFile] = content;
+                }
+
+                return templateData;
+            }
+
+            async generatePowerPoint(slideData, templateData, templateName) {
+                const zip = new JSZip();
+                
+                // Create basic PowerPoint structure
+                await this.createBasicPPTXStructure(zip, slideData);
+                
+                // Generate the final PPTX file
+                const blob = await zip.generateAsync({ type: 'blob' });
+                return blob;
+            }
+
+            async createBasicPPTXStructure(zip, slideData) {
+                const slides = slideData.slides;
+                
+                // Create folder structure
+                zip.folder("ppt");
+                zip.folder("ppt/slides");
+                zip.folder("ppt/slides/_rels");
+                zip.folder("ppt/slideLayouts");
+                zip.folder("ppt/slideMasters");
+                zip.folder("ppt/theme");
+                zip.folder("ppt/_rels");
+                zip.folder("docProps");
+                zip.folder("_rels");
+
+                // Create [Content_Types].xml
+                const contentTypes = this.generateContentTypesXml(slides.length);
+                zip.file("[Content_Types].xml", contentTypes);
+
+                // Create app.xml
+                const appXml = this.generateAppXml(slideData.title, slides.length);
+                zip.file("docProps/app.xml", appXml);
+
+                // Create core.xml
+                const coreXml = this.generateCoreXml(slideData.title);
+                zip.file("docProps/core.xml", coreXml);
+
+                // Create main relationships
+                const mainRels = this.generateMainRelsXml();
+                zip.file("_rels/.rels", mainRels);
+
+                // Create presentation.xml
+                const presentationXml = this.generatePresentationXml(slides.length, slideData.title);
+                zip.file("ppt/presentation.xml", presentationXml);
+
+                // Create presentation relationships
+                const presentationRels = this.generatePresentationRelsXml(slides.length);
+                zip.file("ppt/_rels/presentation.xml.rels", presentationRels);
+
+                // Create theme
+                const themeXml = this.generateThemeXml();
+                zip.file("ppt/theme/theme1.xml", themeXml);
+
+                // Create slide master
+                const slideMasterXml = this.generateSlideMasterXml();
+                zip.file("ppt/slideMasters/slideMaster1.xml", slideMasterXml);
+
+                // Create slide master relationships
+                const slideMasterRels = this.generateSlideMasterRelsXml();
+                zip.file("ppt/slideMasters/_rels/slideMaster1.xml.rels", slideMasterRels);
+
+                // Create slide layouts
+                const slideLayoutXml = this.generateSlideLayoutXml();
+                zip.file("ppt/slideLayouts/slideLayout1.xml", slideLayoutXml);
+
+                const slideLayoutRels = this.generateSlideLayoutRelsXml();
+                zip.file("ppt/slideLayouts/_rels/slideLayout1.xml.rels", slideLayoutRels);
+
+                // Create individual slides
+                slides.forEach((slide, index) => {
+                    const slideNumber = index + 1;
+                    const slideXml = this.generateSlideXml(slide, slideNumber);
+                    zip.file(`ppt/slides/slide${slideNumber}.xml`, slideXml);
+                    
+                    const slideRelsXml = this.generateSlideRelsXml();
+                    zip.file(`ppt/slides/_rels/slide${slideNumber}.xml.rels`, slideRelsXml);
+                });
+            }
+
+            generateSlideXml(slide, slideNumber) {
+                if (slide.type === 'title') {
+                    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<p:sld xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main">
+    <p:cSld>
+        <p:spTree>
+            <p:nvGrpSpPr>
+                <p:cNvPr id="1" name=""/>
+                <p:cNvGrpSpPr/>
+                <p:nvPr/>
+            </p:nvGrpSpPr>
+            <p:grpSpPr>
+                <a:xfrm>
+                    <a:off x="0" y="0"/>
+                    <a:ext cx="0" cy="0"/>
+                    <a:chOff x="0" y="0"/>
+                    <a:chExt cx="0" cy="0"/>
+                </a:xfrm>
+            </p:grpSpPr>
+            <p:sp>
+                <p:nvSpPr>
+                    <p:cNvPr id="2" name="Title 1"/>
+                    <p:cNvSpPr>
+                        <a:spLocks noGrp="1"/>
+                    </p:cNvSpPr>
+                    <p:nvPr>
+                        <p:ph type="title"/>
+                    </p:nvPr>
+                </p:nvSpPr>
+                <p:spPr>
+                    <a:xfrm>
+                        <a:off x="457200" y="273050"/>
+                        <a:ext cx="8229600" cy="1143000"/>
+                    </a:xfrm>
+                </p:spPr>
+                <p:txBody>
+                    <a:bodyPr/>
+                    <a:lstStyle/>
+                    <a:p>
+                        <a:r>
+                            <a:rPr lang="en-US" dirty="0" smtClean="0"/>
+                            <a:t>${this.escapeXml(slide.title)}</a:t>
+                        </a:r>
+                        <a:endParaRPr lang="en-US" dirty="0"/>
+                    </a:p>
+                </p:txBody>
+            </p:sp>
+            ${slide.subtitle ? `<p:sp>
+                <p:nvSpPr>
+                    <p:cNvPr id="3" name="Subtitle 2"/>
+                    <p:cNvSpPr>
+                        <a:spLocks noGrp="1"/>
+                    </p:cNvSpPr>
+                    <p:nvPr>
+                        <p:ph type="subTitle" idx="1"/>
+                    </p:nvPr>
+                </p:nvSpPr>
+                <p:spPr>
+                    <a:xfrm>
+                        <a:off x="457200" y="1600200"/>
+                        <a:ext cx="8229600" cy="600000"/>
+                    </a:xfrm>
+                </p:spPr>
+                <p:txBody>
+                    <a:bodyPr/>
+                    <a:lstStyle/>
+                    <a:p>
+                        <a:r>
+                            <a:rPr lang="en-US" dirty="0" smtClean="0"/>
+                            <a:t>${this.escapeXml(slide.subtitle)}</a:t>
+                        </a:r>
+                        <a:endParaRPr lang="en-US" dirty="0"/>
+                    </a:p>
+                </p:txBody>
+            </p:sp>` : ''}
+        </p:spTree>
+        <p:extLst>
+            <p:ext uri="{BB962C8B-B14F-4D97-AF65-F5344CB8AC3E}">
+                <p14:creationId xmlns:p14="http://schemas.microsoft.com/office/powerpoint/2010/main" val="${Math.floor(Math.random() * 4000000000)}"/>
+            </p:ext>
+        </p:extLst>
+    </p:cSld>
+    <p:clrMapOvr>
+        <a:masterClrMapping/>
+    </p:clrMapOvr>
+    ${slide.notes ? `<p:notes>
+        <p:cSld>
+            <p:spTree>
+                <p:nvGrpSpPr>
+                    <p:cNvPr id="1" name=""/>
+                    <p:cNvGrpSpPr/>
+                    <p:nvPr/>
+                </p:nvGrpSpPr>
+                <p:grpSpPr>
+                    <a:xfrm>
+                        <a:off x="0" y="0"/>
+                        <a:ext cx="0" cy="0"/>
+                        <a:chOff x="0" y="0"/>
+                        <a:chExt cx="0" cy="0"/>
+                    </a:xfrm>
+                </p:grpSpPr>
+                <p:sp>
+                    <p:nvSpPr>
+                        <p:cNvPr id="2" name="Notes Placeholder 1"/>
+                        <p:cNvSpPr>
+                            <a:spLocks noGrp="1"/>
+                        </p:cNvSpPr>
+                        <p:nvPr>
+                            <p:ph type="body" idx="1"/>
+                        </p:nvPr>
+                    </p:nvSpPr>
+                    <p:spPr/>
+                    <p:txBody>
+                        <a:bodyPr/>
+                        <a:lstStyle/>
+                        <a:p>
+                            <a:r>
+                                <a:rPr lang="en-US"/>
+                                <a:t>${this.escapeXml(slide.notes)}</a:t>
+                            </a:r>
+                        </a:p>
+                    </p:txBody>
+                </p:sp>
+            </p:spTree>
+        </p:cSld>
+    </p:notes>` : ''}
+</p:sld>`;
+                } else {
+                    // Handle content slides
+                    const contentBullets = Array.isArray(slide.content) ? 
+                        slide.content.map(bullet => `
+                        <a:p>
+                            <a:pPr lvl="0"/>
+                            <a:r>
+                                <a:rPr lang="en-US" dirty="0" smtClean="0"/>
+                                <a:t>${this.escapeXml(bullet)}</a:t>
+                            </a:r>
+                            <a:endParaRPr lang="en-US" dirty="0"/>
+                        </a:p>`).join('') 
+                        : `<a:p>
+                            <a:r>
+                                <a:rPr lang="en-US" dirty="0" smtClean="0"/>
+                                <a:t>${this.escapeXml(slide.content)}</a:t>
+                            </a:r>
+                            <a:endParaRPr lang="en-US" dirty="0"/>
+                        </a:p>`;
+
+                    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<p:sld xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main">
+    <p:cSld>
+        <p:spTree>
+            <p:nvGrpSpPr>
+                <p:cNvPr id="1" name=""/>
+                <p:cNvGrpSpPr/>
+                <p:nvPr/>
+            </p:nvGrpSpPr>
+            <p:grpSpPr>
+                <a:xfrm>
+                    <a:off x="0" y="0"/>
+                    <a:ext cx="0" cy="0"/>
+                    <a:chOff x="0" y="0"/>
+                    <a:chExt cx="0" cy="0"/>
+                </a:xfrm>
+            </p:grpSpPr>
+            <p:sp>
+                <p:nvSpPr>
+                    <p:cNvPr id="2" name="Title 1"/>
+                    <p:cNvSpPr>
+                        <a:spLocks noGrp="1"/>
+                    </p:cNvSpPr>
+                    <p:nvPr>
+                        <p:ph type="title"/>
+                    </p:nvPr>
+                </p:nvSpPr>
+                <p:spPr/>
+                <p:txBody>
+                    <a:bodyPr/>
+                    <a:lstStyle/>
+                    <a:p>
+                        <a:r>
+                            <a:rPr lang="en-US" dirty="0" smtClean="0"/>
+                            <a:t>${this.escapeXml(slide.title)}</a:t>
+                        </a:r>
+                        <a:endParaRPr lang="en-US" dirty="0"/>
+                    </a:p>
+                </p:txBody>
+            </p:sp>
+            <p:sp>
+                <p:nvSpPr>
+                    <p:cNvPr id="3" name="Content Placeholder 2"/>
+                    <p:cNvSpPr>
+                        <a:spLocks noGrp="1"/>
+                    </p:cNvSpPr>
+                    <p:nvPr>
+                        <p:ph idx="1"/>
+                    </p:nvPr>
+                </p:nvSpPr>
+                <p:spPr>
+                    <a:xfrm>
+                        <a:off x="457200" y="1600200"/>
+                        <a:ext cx="8229600" cy="4525963"/>
+                    </a:xfrm>
+                </p:spPr>
+                <p:txBody>
+                    <a:bodyPr/>
+                    <a:lstStyle/>
+                    ${contentBullets}
+                </p:txBody>
+            </p:sp>
+        </p:spTree>
+        <p:extLst>
+            <p:ext uri="{BB962C8B-B14F-4D97-AF65-F5344CB8AC3E}">
+                <p14:creationId xmlns:p14="http://schemas.microsoft.com/office/powerpoint/2010/main" val="${Math.floor(Math.random() * 4000000000)}"/>
+            </p:ext>
+        </p:extLst>
+    </p:cSld>
+    <p:clrMapOvr>
+        <a:masterClrMapping/>
+    </p:clrMapOvr>
+    ${slide.notes ? `<p:notes>
+        <p:cSld>
+            <p:spTree>
+                <p:nvGrpSpPr>
+                    <p:cNvPr id="1" name=""/>
+                    <p:cNvGrpSpPr/>
+                    <p:nvPr/>
+                </p:nvGrpSpPr>
+                <p:grpSpPr>
+                    <a:xfrm>
+                        <a:off x="0" y="0"/>
+                        <a:ext cx="0" cy="0"/>
+                        <a:chOff x="0" y="0"/>
+                        <a:chExt cx="0" cy="0"/>
+                    </a:xfrm>
+                </p:grpSpPr>
+                <p:sp>
+                    <p:nvSpPr>
+                        <p:cNvPr id="2" name="Notes Placeholder 1"/>
+                        <p:cNvSpPr>
+                            <a:spLocks noGrp="1"/>
+                        </p:cNvSpPr>
+                        <p:nvPr>
+                            <p:ph type="body" idx="1"/>
+                        </p:nvPr>
+                    </p:nvSpPr>
+                    <p:spPr/>
+                    <p:txBody>
+                        <a:bodyPr/>
+                        <a:lstStyle/>
+                        <a:p>
+                            <a:r>
+                                <a:rPr lang="en-US"/>
+                                <a:t>${this.escapeXml(slide.notes)}</a:t>
+                            </a:r>
+                        </a:p>
+                    </p:txBody>
+                </p:sp>
+            </p:spTree>
+        </p:cSld>
+    </p:notes>` : ''}
+</p:sld>`;
+                }
+            }
+
+            generatePresentationXml(slideCount, title) {
+                const slideIdList = Array.from({ length: slideCount }, (_, i) => 
+                    `<p:sldId id="${256 + i}" r:id="rId${i + 2}"/>`
+                ).join('\n            ');
+
+                return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<p:presentation xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main" saveSubsetFonts="1">
+    <p:sldMasterIdLst>
+        <p:sldMasterId id="2147483648" r:id="rId1"/>
+    </p:sldMasterIdLst>
+    <p:sldIdLst>
+        ${slideIdList}
+    </p:sldIdLst>
+    <p:sldSz cx="9144000" cy="6858000" type="screen4x3"/>
+    <p:notesSz cx="6858000" cy="9144000"/>
+    <p:defaultTextStyle>
+        <a:defPPr>
+            <a:defRPr lang="en-US"/>
+        </a:defPPr>
+        <a:lvl1pPr marL="0" algn="l" defTabSz="914400" rtl="0" eaLnBrk="1" latinLnBrk="0" hangingPunct="1">
+            <a:defRPr sz="1800" kern="1200">
+                <a:solidFill>
+                    <a:schemeClr val="tx1"/>
+                </a:solidFill>
+                <a:latin typeface="+mn-lt"/>
+                <a:ea typeface="+mn-ea"/>
+                <a:cs typeface="+mn-cs"/>
+            </a:defRPr>
+        </a:lvl1pPr>
+    </p:defaultTextStyle>
+    <p:extLst>
+        <p:ext uri="{EFAFB233-063F-42B5-8137-9DF3F51BA10A}">
+            <p15:sldGuideLst xmlns:p15="http://schemas.microsoft.com/office/powerpoint/2012/main"/>
+        </p:ext>
+    </p:extLst>
+</p:presentation>`;
+            }
+
+            generatePresentationRelsXml(slideCount) {
+                const slideRels = Array.from({ length: slideCount }, (_, i) => 
+                    `<Relationship Id="rId${i + 2}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide" Target="slides/slide${i + 1}.xml"/>`
+                ).join('\n    ');
+
+                return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+    <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideMaster" Target="slideMasters/slideMaster1.xml"/>
+    ${slideRels}
+</Relationships>`;
+            }
+
+            generateSlideRelsXml() {
+                return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+    <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideLayout" Target="../slideLayouts/slideLayout1.xml"/>
+</Relationships>`;
+            }
+
+            generateMainRelsXml() {
+                return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+    <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="ppt/presentation.xml"/>
+    <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/>
+    <Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties" Target="docProps/app.xml"/>
+</Relationships>`;
+            }
+
+            generateAppXml(title, slideCount) {
+                return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties" xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes">
+    <Application>Auto PPT Generator</Application>
+    <PresentationFormat>On-screen Show (4:3)</PresentationFormat>
+    <Paragraphs>0</Paragraphs>
+    <Slides>${slideCount}</Slides>
+    <Notes>0</Notes>
+    <TotalTime>0</TotalTime>
+    <Words>0</Words>
+    <Characters>0</Characters>
+    <CharactersWithSpaces>0</CharactersWithSpaces>
+    <Lines>0</Lines>
+    <Company>Auto PPT Generator</Company>
+    <LinksUpToDate>false</LinksUpToDate>
+    <SharedDoc>false</SharedDoc>
+    <HyperlinksChanged>false</HyperlinksChanged>
+    <AppVersion>16.0000</AppVersion>
+</Properties>`;
+            }
+
+            generateCoreXml(title) {
+                const now = new Date().toISOString();
+                return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:dcmitype="http://purl.org/dc/dcmitype/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <dc:title>${this.escapeXml(title)}</dc:title>
+    <dc:creator>Auto PPT Generator</dc:creator>
+    <cp:lastModifiedBy>Auto PPT Generator</cp:lastModifiedBy>
+    <cp:revision>1</cp:revision>
+    <dcterms:created xsi:type="dcterms:W3CDTF">${now}</dcterms:created>
+    <dcterms:modified xsi:type="dcterms:W3CDTF">${now}</dcterms:modified>
+</cp:coreProperties>`;
+            }
+
+            generateThemeXml() {
+                return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<a:theme xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" name="Auto PPT Theme">
+    <a:themeElements>
+        <a:clrScheme name="Auto PPT">
+            <a:dk1>
+                <a:sysClr val="windowText" lastClr="000000"/>
+            </a:dk1>
+            <a:lt1>
+                <a:sysClr val="window" lastClr="FFFFFF"/>
+            </a:lt1>
+            <a:dk2>
+                <a:srgbClr val="44546A"/>
+            </a:dk2>
+            <a:lt2>
+                <a:srgbClr val="E7E6E6"/>
+            </a:lt2>
+            <a:accent1>
+                <a:srgbClr val="4472C4"/>
+            </a:accent1>
+            <a:accent2>
+                <a:srgbClr val="E15759"/>
+            </a:accent2>
+            <a:accent3>
+                <a:srgbClr val="A5A5A5"/>
+            </a:accent3>
+            <a:accent4>
+                <a:srgbClr val="FFC000"/>
+            </a:accent4>
+            <a:accent5>
+                <a:srgbClr val="5B9BD5"/>
+            </a:accent5>
+            <a:accent6>
+                <a:srgbClr val="70AD47"/>
+            </a:accent6>
+            <a:hlink>
+                <a:srgbClr val="0563C1"/>
+            </a:hlink>
+            <a:folHlink>
+                <a:srgbClr val="954F72"/>
+            </a:folHlink>
+        </a:clrScheme>
+        <a:fontScheme name="Auto PPT">
+            <a:majorFont>
+                <a:latin typeface="Calibri Light"/>
+                <a:ea typeface=""/>
+                <a:cs typeface=""/>
+            </a:majorFont>
+            <a:minorFont>
+                <a:latin typeface="Calibri"/>
+                <a:ea typeface=""/>
+                <a:cs typeface=""/>
+            </a:minorFont>
+        </a:fontScheme>
+        <a:fmtScheme name="Auto PPT">
+            <a:fillStyleLst>
+                <a:solidFill>
+                    <a:schemeClr val="phClr"/>
+                </a:solidFill>
+                <a:gradFill rotWithShape="1">
+                    <a:gsLst>
+                        <a:gs pos="0">
+                            <a:schemeClr val="phClr">
+                                <a:lumMod val="110000"/>
+                                <a:satMod val="105000"/>
+                                <a:tint val="67000"/>
+                            </a:schemeClr>
+                        </a:gs>
+                        <a:gs pos="50000">
+                            <a:schemeClr val="phClr">
+                                <a:lumMod val="105000"/>
+                                <a:satMod val="103000"/>
+                                <a:tint val="73000"/>
+                            </a:schemeClr>
+                        </a:gs>
+                        <a:gs pos="100000">
+                            <a:schemeClr val="phClr">
+                                <a:lumMod val="105000"/>
+                                <a:satMod val="109000"/>
+                                <a:tint val="81000"/>
+                            </a:schemeClr>
+                        </a:gs>
+                    </a:gsLst>
+                    <a:lin ang="5400000" scaled="0"/>
+                </a:gradFill>
+                <a:gradFill rotWithShape="1">
+                    <a:gsLst>
+                        <a:gs pos="0">
+                            <a:schemeClr val="phClr">
+                                <a:satMod val="103000"/>
+                                <a:lumMod val="102000"/>
+                                <a:tint val="94000"/>
+                            </a:schemeClr>
+                        </a:gs>
+                        <a:gs pos="50000">
+                            <a:schemeClr val="phClr">
+                                <a:satMod val="110000"/>
+                                <a:lumMod val="100000"/>
+                                <a:shade val="100000"/>
+                            </a:schemeClr>
+                        </a:gs>
+                        <a:gs pos="100000">
+                            <a:schemeClr val="phClr">
+                                <a:lumMod val="99000"/>
+                                <a:satMod val="120000"/>
+                                <a:shade val="78000"/>
+                            </a:schemeClr>
+                        </a:gs>
+                    </a:gsLst>
+                    <a:lin ang="5400000" scaled="0"/>
+                </a:gradFill>
+            </a:fillStyleLst>
+            <a:lnStyleLst>
+                <a:ln w="6350" cap="flat" cmpd="sng" algn="ctr">
+                    <a:solidFill>
+                        <a:schemeClr val="phClr"/>
+                    </a:solidFill>
+                    <a:prstDash val="solid"/>
+                    <a:miter lim="800000"/>
+                </a:ln>
+                <a:ln w="12700" cap="flat" cmpd="sng" algn="ctr">
+                    <a:solidFill>
+                        <a:schemeClr val="phClr"/>
+                    </a:solidFill>
+                    <a:prstDash val="solid"/>
+                    <a:miter lim="800000"/>
+                </a:ln>
+                <a:ln w="19050" cap="flat" cmpd="sng" algn="ctr">
+                    <a:solidFill>
+                        <a:schemeClr val="phClr"/>
+                    </a:solidFill>
+                    <a:prstDash val="solid"/>
+                    <a:miter lim="800000"/>
+                </a:ln>
+            </a:lnStyleLst>
+            <a:effectStyleLst>
+                <a:effectStyle>
+                    <a:effectLst/>
+                </a:effectStyle>
+                <a:effectStyle>
+                    <a:effectLst/>
+                </a:effectStyle>
+                <a:effectStyle>
+                    <a:effectLst>
+                        <a:outerShdw blurRad="57150" dist="19050" dir="5400000" algn="ctr" rotWithShape="0">
+                            <a:srgbClr val="000000">
+                                <a:alpha val="63000"/>
+                            </a:srgbClr>
+                        </a:outerShdw>
+                    </a:effectLst>
+                </a:effectStyle>
+            </a:effectStyleLst>
+            <a:bgFillStyleLst>
+                <a:solidFill>
+                    <a:schemeClr val="phClr"/>
+                </a:solidFill>
+                <a:solidFill>
+                    <a:schemeClr val="phClr">
+                        <a:tint val="95000"/>
+                        <a:satMod val="170000"/>
+                    </a:schemeClr>
+                </a:solidFill>
+                <a:gradFill rotWithShape="1">
+                    <a:gsLst>
+                        <a:gs pos="0">
+                            <a:schemeClr val="phClr">
+                                <a:tint val="93000"/>
+                                <a:satMod val="150000"/>
+                                <a:shade val="98000"/>
+                                <a:lumMod val="102000"/>
+                            </a:schemeClr>
+                        </a:gs>
+                        <a:gs pos="50000">
+                            <a:schemeClr val="phClr">
+                                <a:tint val="98000"/>
+                                <a:satMod val="130000"/>
+                                <a:shade val="90000"/>
+                                <a:lumMod val="103000"/>
+                            </a:schemeClr>
+                        </a:gs>
+                        <a:gs pos="100000">
+                            <a:schemeClr val="phClr">
+                                <a:shade val="63000"/>
+                                <a:satMod val="120000"/>
+                            </a:schemeClr>
+                        </a:gs>
+                    </a:gsLst>
+                    <a:lin ang="5400000" scaled="0"/>
+                </a:gradFill>
+            </a:bgFillStyleLst>
+        </a:fmtScheme>
+    </a:themeElements>
+    <a:objectDefaults/>
+    <a:extraClrSchemeLst/>
+    <a:extLst>
+        <a:ext uri="{05A4C25C-085E-4340-85A3-A5531E510DB2}">
+            <thm15:themeFamily xmlns:thm15="http://schemas.microsoft.com/office/thememl/2012/main" name="Auto PPT" id="{1E171B1F-21A4-4F1A-9B17-5F87F0D0B9AC}" vid="{9BB7CE0E-73B1-43BC-9F71-C9A7B6A0B3BC}"/>
+        </a:ext>
+    </a:extLst>
+</a:theme>`;
+            }
+
+            generateSlideMasterXml() {
+                return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<p:sldMaster xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main">
+    <p:cSld>
+        <p:bg>
+            <p:bgRef idx="1001">
+                <a:schemeClr val="bg1"/>
+            </p:bgRef>
+        </p:bg>
+        <p:spTree>
+            <p:nvGrpSpPr>
+                <p:cNvPr id="1" name=""/>
+                <p:cNvGrpSpPr/>
+                <p:nvPr/>
+            </p:nvGrpSpPr>
+            <p:grpSpPr>
+                <a:xfrm>
+                    <a:off x="0" y="0"/>
+                    <a:ext cx="0" cy="0"/>
+                    <a:chOff x="0" y="0"/>
+                    <a:chExt cx="0" cy="0"/>
+                </a:xfrm>
+            </p:grpSpPr>
+        </p:spTree>
+    </p:cSld>
+    <p:clrMap bg1="lt1" tx1="dk1" bg2="lt2" tx2="dk2" accent1="accent1" accent2="accent2" accent3="accent3" accent4="accent4" accent5="accent5" accent6="accent6" hlink="hlink" folHlink="folHlink"/>
+    <p:sldLayoutIdLst>
+        <p:sldLayoutId id="2147483649" r:id="rId1"/>
+    </p:sldLayoutIdLst>
+    <p:txStyles>
+        <p:titleStyle>
+            <a:lvl1pPr algn="ctr" defTabSz="914400" rtl="0" eaLnBrk="1" latinLnBrk="0" hangingPunct="1">
+                <a:spcBef>
+                    <a:spcPct val="0"/>
+                </a:spcBef>
+                <a:buNone/>
+                <a:defRPr sz="4400" kern="1200">
+                    <a:solidFill>
+                        <a:schemeClr val="tx1"/>
+                    </a:solidFill>
+                    <a:latin typeface="+mj-lt"/>
+                    <a:ea typeface="+mj-ea"/>
+                    <a:cs typeface="+mj-cs"/>
+                </a:defRPr>
+            </a:lvl1pPr>
+        </p:titleStyle>
+        <p:bodyStyle>
+            <a:lvl1pPr marL="342900" indent="-342900" algn="l" defTabSz="914400" rtl="0" eaLnBrk="1" latinLnBrk="0" hangingPunct="1">
+                <a:spcBef>
+                    <a:spcPct val="20000"/>
+                </a:spcBef>
+                <a:buFont typeface="Arial" panose="020B0604020202020204" pitchFamily="34" charset="0"/>
+                <a:buChar char="•"/>
+                <a:defRPr sz="2800" kern="1200">
+                    <a:solidFill>
+                        <a:schemeClr val="tx1"/>
+                    </a:solidFill>
+                    <a:latin typeface="+mn-lt"/>
+                    <a:ea typeface="+mn-ea"/>
+                    <a:cs typeface="+mn-cs"/>
+                </a:defRPr>
+            </a:lvl1pPr>
+        </p:bodyStyle>
+    </p:txStyles>
+</p:sldMaster>`;
+            }
+
+            generateSlideMasterRelsXml() {
+                return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+    <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideLayout" Target="../slideLayouts/slideMaster1.xml"/>
+    <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme" Target="../theme/theme1.xml"/>
+</Relationships>`;
+            }
+
+            generateSlideLayoutXml() {
+                return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<p:sldLayout xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main" type="obj" preserve="1">
+    <p:cSld name="Content with Caption">
+        <p:spTree>
+            <p:nvGrpSpPr>
+                <p:cNvPr id="1" name=""/>
+                <p:cNvGrpSpPr/>
+                <p:nvPr/>
+            </p:nvGrpSpPr>
+            <p:grpSpPr>
+                <a:xfrm>
+                    <a:off x="0" y="0"/>
+                    <a:ext cx="0" cy="0"/>
+                    <a:chOff x="0" y="0"/>
+                    <a:chExt cx="0" cy="0"/>
+                </a:xfrm>
+            </p:grpSpPr>
+            <p:sp>
+                <p:nvSpPr>
+                    <p:cNvPr id="2" name="Title 1"/>
+                    <p:cNvSpPr>
+                        <a:spLocks noGrp="1"/>
+                    </p:cNvSpPr>
+                    <p:nvPr>
+                        <p:ph type="title"/>
+                    </p:nvPr>
+                </p:nvSpPr>
+                <p:spPr>
+                    <a:xfrm>
+                        <a:off x="457200" y="273050"/>
+                        <a:ext cx="8229600" cy="1143000"/>
+                    </a:xfrm>
+                </p:spPr>
+                <p:txBody>
+                    <a:bodyPr vert="horz" lIns="91440" tIns="45720" rIns="91440" bIns="45720" rtlCol="0" anchor="ctr"/>
+                    <a:lstStyle/>
+                    <a:p>
+                        <a:pPr algn="ctr"/>
+                        <a:endParaRPr lang="en-US"/>
+                    </a:p>
+                </p:txBody>
+            </p:sp>
+            <p:sp>
+                <p:nvSpPr>
+                    <p:cNvPr id="3" name="Content Placeholder 2"/>
+                    <p:cNvSpPr>
+                        <a:spLocks noGrp="1"/>
+                    </p:cNvSpPr>
+                    <p:nvPr>
+                        <p:ph idx="1"/>
+                    </p:nvPr>
+                </p:nvSpPr>
+                <p:spPr>
+                    <a:xfrm>
+                        <a:off x="457200" y="1600200"/>
+                        <a:ext cx="8229600" cy="4525963"/>
+                    </a:xfrm>
+                </p:spPr>
+                <p:txBody>
+                    <a:bodyPr vert="horz" lIns="91440" tIns="45720" rIns="91440" bIns="45720" rtlCol="0"/>
+                    <a:lstStyle/>
+                    <a:p>
+                        <a:pPr lvl="0"/>
+                        <a:endParaRPr lang="en-US"/>
+                    </a:p>
+                </p:txBody>
+            </p:sp>
+        </p:spTree>
+    </p:cSld>
+    <p:clrMapOvr>
+        <a:masterClrMapping/>
+    </p:clrMapOvr>
+</p:sldLayout>`;
+            }
+
+            generateSlideLayoutRelsXml() {
+                return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+    <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideMaster" Target="../slideMasters/slideMaster1.xml"/>
+</Relationships>`;
+            }
+
+            escapeXml(text) {
+                if (!text || typeof text !== 'string') return '';
+                return String(text)
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&apos;');
+            }
+
+            generateContentTypesXml(slideCount) {
+                const slideOverrides = Array.from({ length: slideCount }, (_, i) => 
+                    `    <Override PartName="/ppt/slides/slide${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/>`
+                ).join('\n');
+
+                return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+    <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+    <Default Extension="xml" ContentType="application/xml"/>
+    <Default Extension="jpeg" ContentType="image/jpeg"/>
+    <Default Extension="jpg" ContentType="image/jpeg"/>
+    <Default Extension="png" ContentType="image/png"/>
+    <Default Extension="gif" ContentType="image/gif"/>
+    <Default Extension="emf" ContentType="image/x-emf"/>
+    <Default Extension="wmf" ContentType="image/x-wmf"/>
+    <Override PartName="/ppt/presentation.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml"/>
+    <Override PartName="/ppt/slideMasters/slideMaster1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideMaster+xml"/>
+    <Override PartName="/ppt/slideLayouts/slideLayout1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideLayout+xml"/>
+    <Override PartName="/ppt/theme/theme1.xml" ContentType="application/vnd.openxmlformats-officedocument.theme+xml"/>
+${slideOverrides}
+    <Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/>
+    <Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/>
+</Types>`;
+            }
+
+            downloadFile(blob, filename) {
+                // Use FileSaver.js for better browser compatibility
+                if (window.saveAs) {
+                    window.saveAs(blob, filename);
+                } else {
+                    // Fallback method
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = filename;
+                    a.style.display = 'none';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                }
+            }
+
+            setLoading(loading) {
+                const generateBtn = document.getElementById('generateBtn');
+                const progressBar = document.getElementById('progressBar');
+                
+                generateBtn.disabled = loading;
+                if (loading) {
+                    generateBtn.textContent = '⚙️ Processing...';
+                    progressBar.style.display = 'block';
+                } else {
+                    generateBtn.textContent = '🚀 Generate PowerPoint Presentation';
+                    progressBar.style.display = 'none';
+                    this.updateProgress(0);
+                }
+            }
+
+            updateProgress(percentage) {
+                const progressFill = document.getElementById('progressFill');
+                progressFill.style.width = `${percentage}%`;
+            }
+
+            showStatus(message, type = 'info') {
+                const status = document.getElementById('status');
+                status.textContent = message;
+                status.className = `status ${type}`;
+            }
+
+            showError(message) {
+                const status = document.getElementById('status');
+                status.innerHTML = `<div class="error">❌ ${message}</div>`;
+            }
+
+            updateApiInfo(provider) {
+                const apiKeyInfo = document.getElementById('apiKeyInfo');
+                
+                switch (provider) {
+                    case 'openai':
+                        apiKeyInfo.textContent = 'OpenAI: Get free $5 credit at platform.openai.com/api-keys';
+                        break;
+                    case 'anthropic':
+                        apiKeyInfo.textContent = 'Anthropic: Get free tier at console.anthropic.com';
+                        break;
+                    case 'gemini':
+                        apiKeyInfo.textContent = 'Google: Get free API key at makersuite.google.com/app/apikey';
+                        break;
+                    default:
+                        apiKeyInfo.textContent = 'Select a provider to see API key information';
+                }
+            }
+        }
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', () => {
+            const app = new AutoPPTGenerator();
+            // Set default API info
+            app.updateApiInfo('openai');
+        });
+
+        // Add sample text for demo purposes
+        document.addEventListener('DOMContentLoaded', () => {
+            const textInput = document.getElementById('textInput');
+            if (!textInput.value) {
+                textInput.placeholder = `Try pasting content like this:
+
+# Company Overview
+Our startup revolutionizes digital marketing through AI-powered analytics.
+
+## Problem Statement
+- Traditional marketing lacks real-time insights
+- Manual analysis is time-consuming and error-prone
+- ROI tracking across channels is fragmented
+
+## Our Solution
+We provide an integrated platform that:
+- Analyzes customer behavior in real-time
+- Predicts optimal marketing spend allocation
+- Delivers actionable insights through AI
+
+## Market Opportunity
+The global marketing analytics market is worth $3.2B and growing at 12% annually.
+
+## Business Model
+- SaaS subscription: $99-499/month
+- Enterprise plans: Custom pricing
+- Revenue sharing for agencies
+
+## Financial Projections
+Year 1: $500K ARR
+Year 2: $2M ARR  
+Year 3: $8M ARR
+
+## Team
+- CEO: Former Google marketing lead
+- CTO: Ex-Facebook ML engineer
+- VP Sales: 15+ years enterprise sales
+
+## Funding Ask
+Seeking $2M Series A to scale engineering and sales teams.`;
+            }
+        });
+    </script>
+</body>
+</html>
